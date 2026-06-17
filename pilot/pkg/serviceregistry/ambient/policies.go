@@ -174,7 +174,7 @@ func PolicyCollections(
 
 		return &model.WorkloadAuthorization{
 			Authorization: pol,
-			LabelSelector: model.NewSelector(i.Spec.GetSelector().GetMatchLabels()),
+			LabelSelector: model.NewSelectorFromWorkloadSelector(i.Spec.GetSelector()),
 			Source:        MakeSource(i),
 			Binding: model.PolicyBindingStatus{
 				ObservedGeneration: i.GetGeneration(),
@@ -243,7 +243,7 @@ func PolicyCollections(
 		}
 		return &model.WorkloadAuthorization{
 			Authorization: pol,
-			LabelSelector: model.NewSelector(i.Spec.GetSelector().GetMatchLabels()),
+			LabelSelector: model.NewSelectorFromWorkloadSelector(i.Spec.GetSelector()),
 		}
 	}, opts.WithName("PeerAuthDerivedPolicies")...)
 

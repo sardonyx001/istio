@@ -161,6 +161,8 @@ func getLabelSelector(a any) map[string]string {
 
 	switch s := labelsField.Interface().(type) {
 	case *v1beta1.WorkloadSelector:
+		// Note: matchExpressions are not indexed here; krt uses equality-based indexing only.
+		// Expression-based selectors fall back to predicate evaluation at query time.
 		return s.GetMatchLabels()
 	case map[string]string:
 		return s

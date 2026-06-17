@@ -34,6 +34,7 @@ import (
 	tpb "istio.io/api/telemetry/v1alpha1"
 	"istio.io/istio/pilot/pkg/networking"
 	"istio.io/istio/pilot/pkg/util/protoconv"
+	"istio.io/istio/pkg/config/labels"
 	"istio.io/istio/pkg/config/schema/gvk"
 	"istio.io/istio/pkg/config/xds"
 	"istio.io/istio/pkg/ptr"
@@ -460,7 +461,7 @@ func (t *Telemetries) applicableTelemetries(proxy *Proxy, svc *Service) computed
 	for _, telemetry := range t.NamespaceToTelemetries[namespace] {
 		spec := telemetry.Spec
 		// Namespace wide policy; already handled above
-		if len(spec.GetSelector().GetMatchLabels()) == 0 && len(GetTargetRefs(spec)) == 0 {
+		if !labels.HasSelectorCriteria(spec.GetSelector()) && len(GetTargetRefs(spec)) == 0 {
 			continue
 		}
 		if matcher.ShouldAttachPolicy(gvk.Telemetry, telemetry.NamespacedName(), spec) {
@@ -661,7 +662,7 @@ func matchWorkloadMode(selector *tpb.AccessLogging_LogSelector, mode tpb.Workloa
 
 func (t *Telemetries) namespaceWideTelemetryConfig(namespace string) Telemetry {
 	for _, tel := range t.NamespaceToTelemetries[namespace] {
-		if len(tel.Spec.GetSelector().GetMatchLabels()) == 0 && len(GetTargetRefs(tel.Spec)) == 0 {
+		if !labels.HasSelectorCriteria(tel.Spec.GetSelector()) && len(GetTargetRefs(tel.Spec)) == 0 {
 			return tel
 		}
 	}

@@ -889,7 +889,11 @@ func buildWorkloadPolicies(
 				return false // filter policy which are invalid, only exist to hold the error condition
 			}
 			nsMatch := wa.Authorization.Namespace == meshCfg.RootNamespace || wa.Authorization.Namespace == workloadNamespace
-			return nsMatch && wa.GetLabelSelector() != nil
+			if !nsMatch || wa.GetLabelSelector() == nil {
+				return false
+			}
+			// FilterSelects above handles matchLabels via index; evaluate matchExpressions here.
+			return labels.MatchesExpressions(labels.Instance(workloadLabels), wa.LabelSelector.Expressions)
 		}),
 	)
 	policies := slices.Sort(slices.Map(basePolicies, func(t model.WorkloadAuthorization) string {

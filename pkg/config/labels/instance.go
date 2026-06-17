@@ -21,6 +21,7 @@ import (
 
 	"github.com/hashicorp/go-multierror"
 
+	"istio.io/api/type/v1beta1"
 	"istio.io/istio/pkg/maps"
 	"istio.io/istio/pkg/slices"
 )
@@ -161,4 +162,67 @@ func (i Instance) String() string {
 		}
 	}
 	return buffer.String()
+}
+
+// SelectorMatches reports whether the given WorkloadSelector selects this workload label set.
+// Both matchLabels and matchExpressions are evaluated; all criteria must be satisfied.
+// A nil selector matches everything.
+func SelectorMatches(workload Instance, sel *v1beta1.WorkloadSelector) bool {
+	if sel == nil {
+		return true
+	}
+	if !Instance(sel.GetMatchLabels()).SubsetOf(workload) {
+		return false
+	}
+	for _, req := range sel.GetMatchExpressions() {
+		if !matchesRequirement(workload, req) {
+			return false
+		}
+	}
+	return true
+}
+
+// HasSelectorCriteria reports whether a WorkloadSelector specifies any selection criteria.
+// Returns false for nil selectors or selectors with empty matchLabels and matchExpressions.
+func HasSelectorCriteria(sel *v1beta1.WorkloadSelector) bool {
+	if sel == nil {
+		return false
+	}
+	return len(sel.GetMatchLabels()) > 0 || len(sel.GetMatchExpressions()) > 0
+}
+
+// MatchesExpressions reports whether the workload satisfies all of the given requirements.
+// A nil or empty slice matches everything.
+func MatchesExpressions(workload Instance, reqs []*v1beta1.LabelSelectorRequirement) bool {
+	for _, req := range reqs {
+		if !matchesRequirement(workload, req) {
+			return false
+		}
+	}
+	return true
+}
+
+func matchesRequirement(workload Instance, req *v1beta1.LabelSelectorRequirement) bool {
+	val, exists := workload[req.GetKey()]
+	switch req.GetOperator() {
+	case "In":
+		for _, v := range req.GetValues() {
+			if v == val && exists {
+				return true
+			}
+		}
+		return false
+	case "NotIn":
+		for _, v := range req.GetValues() {
+			if v == val {
+				return false
+			}
+		}
+		return true
+	case "Exists":
+		return exists
+	case "DoesNotExist":
+		return !exists
+	}
+	return false
 }

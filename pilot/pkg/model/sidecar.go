@@ -697,9 +697,7 @@ func (sc *SidecarScope) DestinationRule(direction TrafficDirection, proxy *Proxy
 		// for inbound configuration, the settings at sidecar would be more explicit and the preferred way forward.
 		if sc.Namespace == destRule.rule.Namespace &&
 			destinationRule.GetWorkloadSelector() != nil && direction == TrafficDirectionOutbound {
-			workloadSelector := labels.Instance(destinationRule.GetWorkloadSelector().GetMatchLabels())
-			// return destination rule if workload selector matches
-			if workloadSelector.SubsetOf(proxy.Labels) {
+			if labels.SelectorMatches(proxy.Labels, destinationRule.GetWorkloadSelector()) {
 				return destRule
 			}
 		}

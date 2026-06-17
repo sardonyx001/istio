@@ -304,8 +304,7 @@ func getConfigsForWorkload(rootNamespace string, configsByNamespace map[string][
 						configs = append(configs, cfg)
 					}
 				case gvk.PeerAuthentication:
-					selector := labels.Instance(cfg.Spec.(*v1beta1.PeerAuthentication).GetSelector().GetMatchLabels())
-					if selector.SubsetOf(workloadLabels) {
+					if labels.SelectorMatches(workloadLabels, cfg.Spec.(*v1beta1.PeerAuthentication).GetSelector()) {
 						configs = append(configs, cfg)
 					}
 				default:

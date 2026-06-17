@@ -40,6 +40,7 @@ import (
 
 	"istio.io/api/annotation"
 	"istio.io/api/label"
+	"istio.io/api/type/v1beta1"
 	"istio.io/istio/pilot/pkg/features"
 	"istio.io/istio/pilot/pkg/serviceregistry/provider"
 	netutil "istio.io/istio/pilot/pkg/util/network"
@@ -1601,11 +1602,22 @@ func (i WorkloadAuthorization) ResourceName() string {
 }
 
 type LabelSelector struct {
-	Labels map[string]string
+	Labels      map[string]string
+	Expressions []*v1beta1.LabelSelectorRequirement
 }
 
 func NewSelector(l map[string]string) LabelSelector {
-	return LabelSelector{l}
+	return LabelSelector{Labels: l}
+}
+
+func NewSelectorFromWorkloadSelector(sel *v1beta1.WorkloadSelector) LabelSelector {
+	if sel == nil {
+		return LabelSelector{}
+	}
+	return LabelSelector{
+		Labels:      sel.GetMatchLabels(),
+		Expressions: sel.GetMatchExpressions(),
+	}
 }
 
 func (l LabelSelector) GetLabelSelector() map[string]string {

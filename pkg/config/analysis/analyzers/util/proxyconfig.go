@@ -21,9 +21,9 @@ import (
 	meshconfig "istio.io/api/mesh/v1alpha1"
 	"istio.io/api/networking/v1beta1"
 	"istio.io/istio/pkg/config/analysis"
+	"istio.io/istio/pkg/config/labels"
 	"istio.io/istio/pkg/config/resource"
 	"istio.io/istio/pkg/config/schema/gvk"
-	"istio.io/istio/pkg/maps"
 	"istio.io/istio/pkg/util/protomarshal"
 )
 
@@ -54,7 +54,7 @@ func (e *EffectiveProxyConfigResolver) ImageType(pod *resource.Instance) string 
 		if !strings.HasPrefix(k, pod.Metadata.FullName.Namespace.String()) {
 			continue
 		}
-		if maps.Contains(pod.Metadata.Labels, v.GetSelector().GetMatchLabels()) {
+		if labels.SelectorMatches(labels.Instance(pod.Metadata.Labels), v.GetSelector()) {
 			if v.GetImage().GetImageType() != "" {
 				variant = v.GetImage().GetImageType()
 			}

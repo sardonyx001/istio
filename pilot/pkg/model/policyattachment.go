@@ -107,8 +107,7 @@ func workloadGatewayName(l labels.Instance) (string, bool) {
 }
 
 func (p WorkloadPolicyMatcher) isSelected(policy TargetablePolicy) bool {
-	selector := policy.GetSelector()
-	return selector == nil || labels.Instance(selector.GetMatchLabels()).SubsetOf(p.WorkloadLabels)
+	return labels.SelectorMatches(p.WorkloadLabels, policy.GetSelector())
 }
 
 // GetTargetRefs returns the list of targetRefs, taking into account the legacy targetRef

@@ -36,6 +36,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	klabels "k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/selection"
 	"k8s.io/client-go/kubernetes"
 
 	apiannotation "istio.io/api/annotation"
@@ -1484,14 +1485,40 @@ func findMatchedConfigs(podsLabels klabels.Set, configs []*config.Config) []*con
 	var cfgs []*config.Config
 
 	for _, cfg := range configs {
-		labels := cfg.Spec.(Workloader).GetSelector().GetMatchLabels()
-		selector := klabels.SelectorFromSet(labels)
+		selector := workloadSelectorToK8sSelector(cfg.Spec.(Workloader).GetSelector())
 		if selector.Matches(podsLabels) {
 			cfgs = append(cfgs, cfg)
 		}
 	}
 
 	return cfgs
+}
+
+func workloadSelectorToK8sSelector(sel *typev1beta1.WorkloadSelector) klabels.Selector {
+	if sel == nil {
+		return klabels.Everything()
+	}
+	base := klabels.SelectorFromValidatedSet(sel.GetMatchLabels())
+	for _, req := range sel.GetMatchExpressions() {
+		var op selection.Operator
+		switch req.GetOperator() {
+		case "In":
+			op = selection.In
+		case "NotIn":
+			op = selection.NotIn
+		case "Exists":
+			op = selection.Exists
+		case "DoesNotExist":
+			op = selection.DoesNotExist
+		default:
+			continue
+		}
+		r, err := klabels.NewRequirement(req.GetKey(), op, req.GetValues())
+		if err == nil {
+			base = base.Add(*r)
+		}
+	}
+	return base
 }
 
 // printConfigs prints the applied configs based on the member's type.

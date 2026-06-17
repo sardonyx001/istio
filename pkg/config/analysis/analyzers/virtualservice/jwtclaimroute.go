@@ -16,9 +16,11 @@ package virtualservice
 
 import (
 	klabels "k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/selection"
 
 	"istio.io/api/networking/v1alpha3"
 	"istio.io/api/security/v1beta1"
+	typev1beta1 "istio.io/api/type/v1beta1"
 	"istio.io/istio/pkg/config"
 	"istio.io/istio/pkg/config/analysis"
 	"istio.io/istio/pkg/config/analysis/analyzers/util"
@@ -56,7 +58,7 @@ func (s *JWTClaimRouteAnalyzer) Analyze(c analysis.Context) {
 			requestAuthNByNamespace[ns] = []klabels.Selector{}
 		}
 		ra := r.Message.(*v1beta1.RequestAuthentication)
-		raSelector := klabels.SelectorFromSet(ra.GetSelector().GetMatchLabels())
+		raSelector := workloadSelectorToK8sSelector(ra.GetSelector())
 		requestAuthNByNamespace[ns] = append(requestAuthNByNamespace[ns], raSelector)
 		return true
 	})
@@ -135,4 +137,31 @@ func routeBasedOnJWTClaimKey(vs *v1alpha3.VirtualService) string {
 		}
 	}
 	return ""
+}
+
+func workloadSelectorToK8sSelector(sel *typev1beta1.WorkloadSelector) klabels.Selector {
+	if sel == nil {
+		return klabels.Everything()
+	}
+	base := klabels.SelectorFromValidatedSet(sel.GetMatchLabels())
+	for _, req := range sel.GetMatchExpressions() {
+		var op selection.Operator
+		switch req.GetOperator() {
+		case "In":
+			op = selection.In
+		case "NotIn":
+			op = selection.NotIn
+		case "Exists":
+			op = selection.Exists
+		case "DoesNotExist":
+			op = selection.DoesNotExist
+		default:
+			continue
+		}
+		r, err := klabels.NewRequirement(req.GetKey(), op, req.GetValues())
+		if err == nil {
+			base = base.Add(*r)
+		}
+	}
+	return base
 }

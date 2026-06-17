@@ -100,11 +100,10 @@ func (p *ProxyConfigs) mergedNamespaceConfig(namespace string) *meshconfig.Proxy
 // mergedWorkloadConfig merges ProxyConfig resources matching the given namespace and labels.
 func (p *ProxyConfigs) mergedWorkloadConfig(namespace string, l map[string]string) *meshconfig.ProxyConfig {
 	for _, pc := range p.namespaceToProxyConfigs[namespace] {
-		if len(pc.GetSelector().GetMatchLabels()) == 0 {
+		if !labels.HasSelectorCriteria(pc.GetSelector()) {
 			continue
 		}
-		selector := labels.Instance(pc.GetSelector().GetMatchLabels())
-		if selector.SubsetOf(l) {
+		if labels.SelectorMatches(labels.Instance(l), pc.GetSelector()) {
 			// return the first match. this is consistent since
 			// we sort the resources by creation time beforehand.
 			return toMeshConfigProxyConfig(pc)
